@@ -1,10 +1,7 @@
 import 'dart:convert';
-import 'dart:html' as html;
-
-// import 'dart:js_interop' as html2;
-
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 
 class NotificationsScreen extends StatefulWidget {
   @override
@@ -17,10 +14,23 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
   List<String> selectedTimes = [];
   Map<String, String> allHabitsMap = {};
 
+  FlutterLocalNotificationsPlugin flutterLocalNotificationsPlugin =
+      FlutterLocalNotificationsPlugin();
+
   @override
   void initState() {
     super.initState();
+    _initializeNotifications();
     _loadData();
+  }
+
+  Future<void> _initializeNotifications() async {
+    var androidInitSettings = AndroidInitializationSettings(
+      '@mipmap/ic_launcher',
+    );
+    var initSettings = InitializationSettings(android: androidInitSettings);
+
+    await flutterLocalNotificationsPlugin.initialize(initSettings);
   }
 
   Future<void> _loadData() async {
@@ -28,7 +38,8 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
     setState(() {
       notificationsEnabled = prefs.getBool('notificationsEnabled') ?? false;
       allHabitsMap = Map<String, String>.from(
-          jsonDecode(prefs.getString('selectedHabitsMap') ?? '{}'));
+        jsonDecode(prefs.getString('selectedHabitsMap') ?? '{}'),
+      );
       selectedHabits = prefs.getStringList('notificationHabits') ?? [];
       selectedTimes = prefs.getStringList('notificationTimes') ?? [];
     });
@@ -44,27 +55,30 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
   Color _getColorFromHex(String hexColor) {
     hexColor = hexColor.replaceAll('#', '');
     if (hexColor.length == 6) {
-      hexColor = 'FF$hexColor'; // أضف الشفافية إذا لم تكن متضمنة.
+      hexColor = 'FF$hexColor';
     }
     return Color(int.parse('0x$hexColor'));
   }
 
-  void _sendTestNotification() {
-    if (html.Notification.permission != "granted") {
-      html.Notification.requestPermission().then((permission) {
-        if (permission == 'granted') {
-          html.Notification("تذكير بالعادات",
-              body: "حان الوقت للعمل على عاداتك!");
-          print('تم منح إذن الإشعار. تم إرسال الإشعار.');
-        } else {
-          print('تم رفض إذن الإشعار.');
-        }
-      });
-    } else {
-      html.Notification("تذكير بالعادات",
-          body: "حان الوقت للعمل على عاداتك!");
-      print('تم إرسال الإشعار مباشرة.');
-    }
+  void _sendTestNotification() async {
+    var androidDetails = AndroidNotificationDetails(
+      "channelId",
+      "تذكير بالعادات",
+      importance: Importance.high,
+    );
+
+    var generalNotificationDetails = NotificationDetails(
+      android: androidDetails,
+    );
+
+    await flutterLocalNotificationsPlugin.show(
+      0,
+      "تذكير بالعادات",
+      "حان الوقت للعمل على عاداتك!",
+      generalNotificationDetails,
+    );
+
+    print('تم إرسال الإشعار بنجاح!');
   }
 
   @override
@@ -151,7 +165,6 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
             Spacer(),
             ElevatedButton(
               onPressed: () {
-                // استخدم طريقة _sendTestNotification لتفعيل الإشعار
                 _sendTestNotification();
               },
               child: Text('إرسال إشعار تجريبي'),
