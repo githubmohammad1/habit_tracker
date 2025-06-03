@@ -8,7 +8,7 @@ plugins {
 android {
    // ndkVersion = flutter.ndkVersion
     namespace = "com.example.habit_tracker"
-    compileSdk = 34
+    compileSdk = 35
 
     ndkVersion = "27.0.12077973"
 
